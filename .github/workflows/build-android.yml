@@ -48,16 +48,18 @@ jobs:
       - name: Generate Android Keystore & Configure Godot Settings
         run: |
           mkdir -p /home/runner/.android
-          # Debug Keystore
+          # Debug Keystore (backdated startdate to ensure valid across all device clocks)
           keytool -genkey -v -keystore /home/runner/.android/debug.keystore \
             -storepass android -alias androiddebugkey -keypass android \
-            -keyalg RSA -keysize 2048 -validity 10000 \
+            -keyalg RSA -keysize 2048 -validity 20000 \
+            -startdate "2020/01/01 00:00:00" \
             -dname "CN=Android Debug,O=Android,C=US"
 
-          # Release Keystore
+          # Release Keystore (backdated startdate to 2020 to prevent future certificate errors)
           keytool -genkey -v -keystore /home/runner/.android/release.keystore \
             -storepass wrap_password_123 -alias wrapkey -keypass wrap_password_123 \
-            -keyalg RSA -keysize 2048 -validity 10000 \
+            -keyalg RSA -keysize 2048 -validity 20000 \
+            -startdate "2020/01/01 00:00:00" \
             -dname "CN=WRAP Game,O=TPGoFighting,C=CN"
 
           mkdir -p ~/.config/godot
@@ -96,11 +98,14 @@ jobs:
           # 3. Zipalign APK (4-byte alignment for uncompressed assets)
           "$ZIPALIGN" -p -f 4 build/WRAP_unaligned.apk build/WRAP_aligned.apk
 
-          # 4. Sign release APK with v1, v2, v3 schemes
+          # 4. Sign release APK with explicit v1, v2, v3 schemes
           "$APKSIGNER" sign --ks /home/runner/.android/release.keystore \
             --ks-pass pass:wrap_password_123 \
             --ks-key-alias wrapkey \
             --key-pass pass:wrap_password_123 \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
             --out build/WRAP.apk build/WRAP_aligned.apk
 
           # 5. Verify Signature
