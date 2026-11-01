@@ -1,0 +1,16 @@
+# Large Windows binary
+WRAP.exe
+WRAP_opt.pck
+
+# Temporary files & caches
+*.log
+.DS_Store
+web_templates/
+web_export_nothreads/
+web_export_threads/
+unpacked_pck/
+*.tmp
+
+# Python cache
+__pycache__/
+*.pyc
