@@ -22,12 +22,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android Build Tools
+      - name: Check & Prepare Android SDK
         run: |
-          sdkmanager --install "build-tools;34.0.0" "platforms;android-34"
+          echo "ANDROID_HOME is $ANDROID_HOME"
+          ls -la "$ANDROID_HOME"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Install Godot 4.7.2 Headless & Export Templates
         run: |
@@ -93,5 +92,5 @@ jobs:
         run: |
           gh release create v0.9.0-android build/WRAP.apk \
             --title "WRAP · 星际远征 v0.9.0 (Android APK)" \
-            --notes "🚀 《WRAP · 星际远征》v0.9.0 原生横屏 Android APK 安装包。基于 Godot 4.7.2 原生 arm64/x86_64 引擎与极速 18MB 优化资产构建。" \
+            --notes "🚀 《WRAP · 星际远征》v0.9.0 官方原生横屏 Android APK 安装包。基于 Godot 4.7.2 原生 arm64/x86_64 引擎与极速 18MB 优化资产构建。" \
             || gh release upload v0.9.0-android build/WRAP.apk --clobber
