@@ -75,11 +75,39 @@ jobs:
           export/android/java_sdk_path = "$JAVA_HOME"
           EOF
 
-      - name: Build Android APK with Godot
+      - name: Build Android Base APK with Godot
         run: |
           mkdir -p build
-          OUTPUT_APK="$(pwd)/build/WRAP.apk"
-          godot -v --headless --path unpacked_pck_opt --export-release "Android" "$OUTPUT_APK"
+          godot -v --headless --path unpacked_pck_opt --export-release "Android" "$(pwd)/build/WRAP_base.apk"
+
+      - name: Package Full Game PCK into APK & Sign Release
+        run: |
+          # 1. Locate Android build tools (zipalign, apksigner, aapt)
+          ZIPALIGN=$(find "$ANDROID_HOME/build-tools" -name zipalign | sort -V | tail -n 1)
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt | sort -V | tail -n 1)
+          echo "Using zipalign: $ZIPALIGN"
+          echo "Using apksigner: $APKSIGNER"
+          echo "Using aapt: $AAPT"
+
+          # 2. Inject complete 18MB WRAP.pck and Android boot settings
+          python3 tools/package_android_apk.py build/WRAP_base.apk web_build/WRAP.pck build/WRAP_unaligned.apk
+
+          # 3. Zipalign APK (4-byte alignment for uncompressed assets)
+          "$ZIPALIGN" -p -f 4 build/WRAP_unaligned.apk build/WRAP_aligned.apk
+
+          # 4. Sign release APK with v1, v2, v3 schemes
+          "$APKSIGNER" sign --ks /home/runner/.android/release.keystore \
+            --ks-pass pass:wrap_password_123 \
+            --ks-key-alias wrapkey \
+            --key-pass pass:wrap_password_123 \
+            --out build/WRAP.apk build/WRAP_aligned.apk
+
+          # 5. Verify Signature
+          "$APKSIGNER" verify --verbose build/WRAP.apk
+
+          # 6. Verify Package Badging (Landscape, Package name, Activity)
+          "$AAPT" dump badging build/WRAP.apk | grep -E "package|screenOrientation|application-label|launchable-activity"
 
       - name: Verify APK Output
         run: |
