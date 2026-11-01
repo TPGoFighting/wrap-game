@@ -47,11 +47,18 @@ jobs:
 
       - name: Generate Android Keystore & Configure Godot Settings
         run: |
-          mkdir -p ~/.android
-          keytool -genkey -v -keystore ~/.android/debug.keystore \
+          mkdir -p /home/runner/.android
+          # Debug Keystore
+          keytool -genkey -v -keystore /home/runner/.android/debug.keystore \
             -storepass android -alias androiddebugkey -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
+
+          # Release Keystore
+          keytool -genkey -v -keystore /home/runner/.android/release.keystore \
+            -storepass wrap_password_123 -alias wrapkey -keypass wrap_password_123 \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=WRAP Game,O=TPGoFighting,C=CN"
 
           mkdir -p ~/.config/godot
           cat << EOF > ~/.config/godot/editor_settings-4.7.tres
@@ -62,6 +69,9 @@ jobs:
           export/android/debug_keystore = "/home/runner/.android/debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
+          export/android/release_keystore = "/home/runner/.android/release.keystore"
+          export/android/release_keystore_user = "wrapkey"
+          export/android/release_keystore_pass = "wrap_password_123"
           export/android/java_sdk_path = "$JAVA_HOME"
           EOF
 
