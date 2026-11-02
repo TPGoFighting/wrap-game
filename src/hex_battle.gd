@@ -8,8 +8,10 @@ const MUTED = Color("b9cbbc")
 const NAVY = Color("25433f")
 const SLOT_RADIUS = 44.0
 
+var center_x: float = 720.0
+
 func lane_center(lane: int) -> Vector2:
-	return Vector2(270 + lane * 450, 409)
+	return Vector2(center_x + (lane - 1) * 450.0, 409)
 
 func lane_polygon(lane: int, inset: float = 0.0) -> PackedVector2Array:
 	var c = lane_center(lane)
@@ -31,8 +33,12 @@ func slot_center(side: int, lane: int, index: int) -> Vector2:
 
 func hand_rect(v, index: int) -> Rect2:
 	var count = v.game.s.battle.hands[0].size()
-	var width = minf(125.0, (1030.0 - maxi(count - 1, 0) * 9.0) / maxi(count, 1))
-	var x = 33.0 + index * (width + 9)
+	var w = v.size.x
+	var side_margin = maxf(20.0, (w - 1400.0) / 2.0)
+	var action_right = w - side_margin - 16.0
+	var available_w = (action_right - 330.0) - (side_margin + 16.0)
+	var width = minf(135.0, (available_w - maxi(count - 1, 0) * 10.0) / maxi(count, 1))
+	var x = side_margin + 16.0 + index * (width + 10.0)
 	return Rect2(x, 725 - (9 if v.selected == index else 0), width, 134)
 
 func poly(v, points: PackedVector2Array, fill: Color, border: Color, width: float = 1.5):
@@ -44,48 +50,54 @@ func poly(v, points: PackedVector2Array, fill: Color, border: Color, width: floa
 func draw(v):
 	var b = v.game.s.battle
 	var result = v.game.s.phase == "result"
+	var w = v.size.x
+	var h = v.size.y
+	center_x = w / 2.0
+	var side_margin = maxf(20.0, (w - 1400.0) / 2.0)
+	var top_right = w - side_margin - 10.0
+	var action_right = w - side_margin - 16.0
 
-	v.panel(Rect2(24, 77, 1392, 64), Color("2a4744"), Color("637d70"), 10)
+	v.panel(Rect2(side_margin, 77, w - side_margin * 2, 64), Color("2a4744"), Color("637d70"), 10)
 	var enemy = v.game.enemy_for_stage()
-	v.portrait(enemy.portrait, Rect2(36, 86, 44, 44))
-	v.text_at("敌方  /  " + enemy.name, Vector2(94, 103), 18, CORAL, true)
-	v.text_at("%s  ·  手牌 %d  ·  牌库 %d  ·  点击查看敌情" % [enemy.archetype, b.hands[1].size(), b.draws[1].size()], Vector2(95, 126), 12, MUTED)
-	if not v.busy: v.hit(Rect2(30, 80, 438, 57), "enemy" + str(v.game.s.stage), v.change.bind("enemy", v.game.s.stage), enemy.desc)
-	v.centered("ROUND  %02d / 06" % b.round, Rect2(498, 86, 200, 22), 19, INK, true)
-	v.centered(v.resolution_label if v.busy else ("你方先揭示" if b.round % 2 == 1 else "敌方先揭示"), Rect2(476, 111, 244, 21), 12, GOLD)
+	v.portrait(enemy.portrait, Rect2(side_margin + 12, 86, 44, 44))
+	v.text_at("敌方  /  " + enemy.name, Vector2(side_margin + 70, 103), 18, CORAL, true)
+	v.text_at("%s  ·  手牌 %d  ·  牌库 %d  ·  点击查看敌情" % [enemy.archetype, b.hands[1].size(), b.draws[1].size()], Vector2(side_margin + 71, 126), 12, MUTED)
+	if not v.busy: v.hit(Rect2(side_margin + 6, 80, 438, 57), "enemy" + str(v.game.s.stage), v.change.bind("enemy", v.game.s.stage), enemy.desc)
+	v.centered("ROUND  %02d / 06" % b.round, Rect2(center_x - 100, 86, 200, 22), 19, INK, true)
+	v.centered(v.resolution_label if v.busy else ("你方先揭示" if b.round % 2 == 1 else "敌方先揭示"), Rect2(center_x - 122, 111, 244, 21), 12, GOLD)
 	for i in range(6):
-		v.draw_rect(Rect2(744 + i * 22, 101, 15, 7), CYAN if i < b.round else Color("49645d"))
-	v.button("牌组", Rect2(916, 89, 90, 39), "deck", null, false, v.busy)
-	v.button("记录", Rect2(1016, 89, 90, 39), "log", null, false, v.busy)
-	v.button("规则", Rect2(1116, 89, 90, 39), "help", null, false, v.busy)
-	v.button("主菜单", Rect2(1216, 89, 182, 39), "menu", null, false, v.busy)
+		v.draw_rect(Rect2(center_x + 146 + i * 22, 101, 15, 7), CYAN if i < b.round else Color("49645d"))
+	v.button("牌组", Rect2(top_right - 420, 89, 90, 39), "deck", null, false, v.busy)
+	v.button("记录", Rect2(top_right - 320, 89, 90, 39), "log", null, false, v.busy)
+	v.button("规则", Rect2(top_right - 220, 89, 90, 39), "help", null, false, v.busy)
+	v.button("主菜单", Rect2(top_right - 120, 89, 120, 39), "menu", null, false, v.busy)
 
 	for lane in range(3): draw_sector(v, lane)
 
-	v.panel(Rect2(20, 686, 1400, 192), Color("2a4744"), Color("637d70"), 12)
-	v.text_at("部署手牌", Vector2(36, 710), 18, CYAN, true)
-	v.text_at("牌库 %d  /  待揭示 %d" % [b.draws[0].size(), b.queue.size()], Vector2(143, 709), 12, MUTED)
-	v.text_at("点击手牌 → 六边战区   ·   Z 撤回   ·   空格结束", Vector2(544, 709), 12, MUTED)
+	v.panel(Rect2(side_margin, 686, w - side_margin * 2, 192), Color("2a4744"), Color("637d70"), 12)
+	v.text_at("部署手牌", Vector2(side_margin + 16, 710), 18, CYAN, true)
+	v.text_at("牌库 %d  /  待揭示 %d" % [b.draws[0].size(), b.queue.size()], Vector2(side_margin + 123, 709), 12, MUTED)
+	v.text_at("点击手牌 → 六边战区   ·   点击空白取消选择   ·   点击手牌查看技能", Vector2(center_x - 240, 709), 12, MUTED)
 	for i in range(b.hands[0].size()): v.draw_hand_card(b.hands[0][i], hand_rect(v, i), i)
-	if b.hands[0].is_empty(): v.centered("手牌已部署，结束回合后继续抽牌。", Rect2(33, 748, 1000, 70), 20, MUTED)
-	v.draw_line(Vector2(1083, 705), Vector2(1083, 860), Color("617a70"), 1)
-	v.text_at("可用能量", Vector2(1106, 714), 13, MUTED)
-	v.badge(str(v.displayed_energy()) if not result else "—", Vector2(1140, 749), CYAN, 24)
-	v.text_at("/ %d" % b.energy[0], Vector2(1177, 756), 22, MUTED)
+	if b.hands[0].is_empty(): v.centered("手牌已部署，结束回合后继续抽牌。", Rect2(side_margin + 16, 748, action_right - 340 - side_margin, 70), 20, MUTED)
+	v.draw_line(Vector2(action_right - 315, 705), Vector2(action_right - 315, 860), Color("617a70"), 1)
+	v.text_at("可用能量", Vector2(action_right - 293, 714), 13, MUTED)
+	v.badge(str(v.displayed_energy()) if not result else "—", Vector2(action_right - 259, 749), CYAN, 24)
+	v.text_at("/ %d" % b.energy[0], Vector2(action_right - 222, 756), 22, MUTED)
 	for i in range(mini(b.energy[0], 10)):
-		v.draw_rect(Rect2(1107 + i * 28, 784, 20, 5), CYAN if i < v.displayed_energy() else Color("49645d"))
+		v.draw_rect(Rect2(action_right - 292 + i * 28, 784, 20, 5), CYAN if i < v.displayed_energy() else Color("49645d"))
 	var speed_text = "简化动画" if v.animation_speed == 0 else "动画 ×%d" % v.animation_speed
-	v.button(speed_text, Rect2(1271, 703, 128, 37), "speed", null, false, v.busy)
-	v.button("撤回", Rect2(1271, 748, 128, 37), "undo", null, false, b.queue.is_empty() or v.busy or result)
-	v.button("正在揭示…" if v.busy else "结束回合  →", Rect2(1106, 811, 293, 48), "end", null, true, v.busy or result)
+	v.button(speed_text, Rect2(action_right - 128, 703, 128, 37), "speed", null, false, v.busy)
+	v.button("撤回", Rect2(action_right - 128, 748, 128, 37), "undo", null, false, b.queue.is_empty() or v.busy or result)
+	v.button("正在揭示…" if v.busy else "结束回合  →", Rect2(action_right - 293, 811, 293, 48), "end", null, true, v.busy or result)
 	var hint = "选择手牌，点亮你的下一个据点。"
 	if v.selected >= 0 and v.selected < b.hands[0].size():
 		hint = "部署「%s」 · 金色边框为可用战区" % v.Rules.CARDS[b.hands[0][v.selected].id].name
 	if v.gate_uid >= 0: hint = "调度已启动 · 点击目标单位，再选择另一个战区"
-	if v.moving_uid >= 0: hint = "选择移动目的地 · 右键或 Esc 取消"
+	if v.moving_uid >= 0: hint = "选择移动目的地 · 点击空白取消"
 	if v.swap_uid >= 0: hint = "换位 · 点击另一战区的己方无技能单位（满区也可交换）"
 	if v.busy: hint = v.resolution_label
-	v.centered(hint, Rect2(200, 659, 1040, 23), 13, GOLD if v.selected >= 0 or v.busy else MUTED)
+	v.centered(hint, Rect2(center_x - 520, 659, 1040, 23), 13, GOLD if v.selected >= 0 or v.busy else MUTED)
 	draw_effects(v)
 	if result:
 		v.draw_result()

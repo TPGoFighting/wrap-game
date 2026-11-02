@@ -683,15 +683,20 @@ func symbol(center: Vector2, r: float, kind: String, tint: Color):
 		draw_circle(center + Vector2(cos(a), sin(a)) * r, 2.6, tint)
 
 func background():
-	draw_rect(Rect2(0, 0, 1440, 900), BG)
-	draw_texture_rect(backdrop, Rect2(0, 0, 1440, 900), false)
-	draw_rect(Rect2(0, 0, 1440, 900), Color(0.1, 0.2, 0.2, 0.25))
-	draw_rect(Rect2(0, 0, 1440, 63), Color("233e50"))
+	var w = size.x
+	var h = size.y
+	draw_rect(Rect2(0, 0, w, h), BG)
+	var scale = maxf(w / 1440.0, h / 900.0)
+	var bg_w = 1440.0 * scale
+	var bg_h = 900.0 * scale
+	draw_texture_rect(backdrop, Rect2((w - bg_w) / 2.0, (h - bg_h) / 2.0, bg_w, bg_h), false)
+	draw_rect(Rect2(0, 0, w, h), Color(0.1, 0.2, 0.2, 0.25))
+	draw_rect(Rect2(0, 0, w, 63), Color("233e50"))
 	start_ui.icon(self, "emblem", Rect2(24, 12, 39, 39))
 	draw_texture_rect(start_ui.LOGO, Rect2(72, 16, 110, 28), false)
 	text_at("星际远征", Vector2(204, 39), 13, MINT, true)
-	text_at("单人远征  /  三区争夺", Vector2(1203, 39), 13, MUTED)
-	draw_line(Vector2(0, 62), Vector2(1440, 62), Color("526e80"), 1.5)
+	text_at("单人远征  /  三区争夺", Vector2(w - 237, 39), 13, MUTED)
+	draw_line(Vector2(0, 62), Vector2(w, 62), Color("526e80"), 1.5)
 
 func _draw():
 	builder_search.visible = screen in ["builder", "archive"] and modal == ""
@@ -709,11 +714,11 @@ func _draw():
 			"complete", "gameover": draw_ending()
 	if modal != "":
 		hits.clear()
-		draw_rect(Rect2(0, 0, 1440, 900), Color(0.1, 0.22, 0.22, 0.96))
+		draw_rect(Rect2(0, 0, size.x, size.y), Color(0.1, 0.22, 0.22, 0.96))
 		draw_modal()
 	if not busy: tooltip_ui.draw(self)
 	if toast != "":
-		var notice = Rect2(92, 813, 970, 42) if modal in ["library", "random", "presets"] else Rect2(440, 642, 700, 40)
+		var notice = Rect2((size.x - 970) / 2.0, 813, 970, 42) if modal in ["library", "random", "presets"] else Rect2((size.x - 700) / 2.0, 642, 700, 40)
 		panel(notice, Color("332e22"), GOLD, 8)
 		centered(toast, notice.grow(-8), 15, GOLD)
 
@@ -733,9 +738,10 @@ func save_settings():
 	if file: file.store_string(JSON.stringify({"speed": animation_speed, "fullscreen": DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED}))
 
 func top_actions():
-	button("牌组 · 12", Rect2(1040, 78, 145, 40), "deck")
-	button("规则", Rect2(1197, 78, 92, 40), "help")
-	button("主菜单", Rect2(1301, 78, 107, 40), "menu")
+	var right_x = size.x - 30.0
+	button("主菜单", Rect2(right_x - 107, 78, 107, 40), "menu")
+	button("规则", Rect2(right_x - 211, 78, 92, 40), "help")
+	button("牌组 · 12", Rect2(right_x - 368, 78, 145, 40), "deck")
 
 func draw_map():
 	top_actions()
@@ -743,22 +749,23 @@ func draw_map():
 	text_at(game.enemy_for_stage().story, Vector2(66, 205), 20, MUTED)
 	text_at("剩余机会  " + "● ".repeat(int(game.s.lives)), Vector2(66, 253), 19, GOLD)
 	var stage = int(game.s.stage)
-	draw_line(Vector2(260, 464), Vector2(1180, 464), LINE, 4)
+	var cx = size.x / 2.0
+	draw_line(Vector2(cx - 460, 464), Vector2(cx + 460, 464), LINE, 4)
 	for i in range(3):
-		var x = 64 + i * 449
+		var x = cx - 620 + i * 420
 		var current = i == stage
 		var done = i < stage
 		var enemy = game.enemy_for_stage(i)
-		panel(Rect2(x, 310, 414, 390), Color("456654") if current else PANEL, GOLD if current else LINE, 12)
+		panel(Rect2(x, 310, 400, 390), Color("456654") if current else PANEL, GOLD if current else LINE, 12)
 		text_at(enemy.title, Vector2(x + 28, 346), 16, MINT if current else MUTED)
-		portrait(enemy.portrait, Rect2(x + 137, 365, 140, 140), not current and not done)
+		portrait(enemy.portrait, Rect2(x + 130, 365, 140, 140), not current and not done)
 		text_at(enemy.name, Vector2(x + 28, 546), 28, INK, true)
 		text_at(enemy.archetype, Vector2(x + 28, 578), 18, GOLD, true)
-		paragraph(enemy.desc, Vector2(x + 28, 610), 355, 16, MUTED, 23)
+		paragraph(enemy.desc, Vector2(x + 28, 610), 344, 16, MUTED, 23)
 		text_at("已通过" if done else ("当前目的地" if current else "尚未抵达"), Vector2(x + 28, 679), 15, MINT if done or current else MUTED)
-		button("查看敌情", Rect2(x + 264, 650, 120, 33), "enemy", i)
-	button("进入战斗  →", Rect2(1047, 744, 329, 65), "start", null, true)
-	paragraph("每站从全部24套牌型中独立随机抽取，可以重复遭遇；读档不重抽。\n战败消耗1次机会；战后可获取新牌替换旧卡。", Vector2(66, 755), 900, 19, MUTED, 31)
+		button("查看敌情", Rect2(x + 250, 650, 120, 33), "enemy", i)
+	button("进入战斗  →", Rect2(size.x - 360, 744, 320, 65), "start", null, true)
+	paragraph("每站从全部24套牌型中独立随机抽取，可以重复遭遇；读档不重抽。\n战败消耗1次机会；战后可获取新牌替换旧卡。", Vector2(66, 755), minf(900.0, size.x - 420.0), 19, MUTED, 31)
 	text_at("进度自动保存在本机", Vector2(66, 853), 15, MUTED)
 
 func draw_battle():
@@ -785,23 +792,24 @@ func draw_result():
 		var points = battle_ui.lane_polygon(lane, 2)
 		points.append(points[0])
 		draw_polyline(points, Color(MINT if game.s.result.scores[0][lane] > game.s.result.scores[1][lane] else GOLD, 1.0 - reveal_amount), 5, true)
-	draw_rect(Rect2(0, 0, 1440, 900), Color(0.02, 0.08, 0.16, 0.82 * reveal_amount))
+	draw_rect(Rect2(0, 0, size.x, size.y), Color(0.02, 0.08, 0.16, 0.82 * reveal_amount))
 	draw_set_transform(Vector2(0, (1.0 - reveal_amount) * 22), 0, Vector2.ONE)
-	panel(Rect2(400, 225, 715, 455), Color("304c5c"), GOLD, 14)
+	var px = (size.x - 715) / 2.0
+	panel(Rect2(px, 225, 715, 455), Color("304c5c"), GOLD, 14)
 	var r = game.s.result
 	var title = {"win": "遭遇战胜利", "loss": "冒险暂时受阻", "tie": "势均力敌"}[r.outcome]
-	centered(title, Rect2(430, 258, 655, 65), 40, MINT if r.outcome == "win" else GOLD, true)
-	centered("获胜区域  %d : %d    /    总战力  %d : %d" % [r.wins[0], r.wins[1], roundi(r.totals[0] * reveal_amount), roundi(r.totals[1] * reveal_amount)], Rect2(430, 347, 655, 35), 21, INK)
+	centered(title, Rect2(px + 30, 258, 655, 65), 40, MINT if r.outcome == "win" else GOLD, true)
+	centered("获胜区域  %d : %d    /    总战力  %d : %d" % [r.wins[0], r.wins[1], roundi(r.totals[0] * reveal_amount), roundi(r.totals[1] * reveal_amount)], Rect2(px + 30, 347, 655, 35), 21, INK)
 	for lane in range(3):
-		var x = 430 + lane * 220
+		var x = px + 30 + lane * 220
 		centered(Rules.REGIONS[int(game.s.battle.regions[lane])].name, Rect2(x, 412, 210, 30), 18, MUTED)
 		centered("%d : %d" % [roundi(r.scores[0][lane] * reveal_amount), roundi(r.scores[1][lane] * reveal_amount)], Rect2(x, 452, 210, 36), 28, INK, true)
 	var description = "人物、异族与舰队都能入队。选择一张卡，补强你的队伍。"
 	if r.outcome == "win" and game.s.stage == 2: description = "已击退" + game.enemy_for_stage().name + "，舰队完成了裂隙远征。"
 	elif r.outcome == "loss": description = "消耗 1 次机会，剩余 %d 次。调整策略后重新挑战。" % game.s.lives
 	elif r.outcome == "tie": description = "区域和总战力均持平。不消耗机会，重新挑战。"
-	centered(description, Rect2(420, 516, 675, 30), 17, MUTED)
-	button("选择奖励  →" if r.outcome == "win" and game.s.stage < 2 else "继续  →", Rect2(625, 578, 265, 58), "next", null, true, reveal_amount < 1.0)
+	centered(description, Rect2(px + 20, 516, 675, 30), 17, MUTED)
+	button("选择奖励  →" if r.outcome == "win" and game.s.stage < 2 else "继续  →", Rect2(px + 225, 578, 265, 58), "next", null, true, reveal_amount < 1.0)
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 func displayed_card_power(card: Dictionary) -> int:
@@ -825,19 +833,21 @@ func draw_rewards():
 	if game.s.phase == "reward":
 		text_at("招募新的队友", Vector2(90, 190), 42, INK, true)
 		text_at("人物、异族与舰队自由混搭。选一张替换旧卡，牌组保持 12 张。", Vector2(93, 240), 20, MUTED)
+		var cx = size.x / 2.0
 		for i in range(game.s.rewards.size()):
-			var x = 190 + i * 370
+			var x = cx - 530 + i * 370
 			large_card(game.s.rewards[i], Rect2(x, 300, 320, 350))
 			hit(Rect2(x, 300, 320, 350), "reward_art" + str(i), func(): pass)
 			card_hint(preview_card(game.s.rewards[i]))
 			button("招募异族单位" if Rules.MONSTERS.has(game.s.rewards[i]) else "获取卡牌", Rect2(x, 670, 320, 58), "reward", game.s.rewards[i], true)
-		button("保留现有牌组，继续冒险", Rect2(525, 786, 390, 50), "skip")
+		button("保留现有牌组，继续冒险", Rect2((size.x - 390) / 2.0, 786, 390, 50), "skip")
 	else:
 		text_at("为「%s」腾出一个位置" % Rules.CARDS[game.s.chosen].name, Vector2(90, 180), 36, INK, true)
 		text_at("点击要替换的卡牌。牌组始终保持 12 张；费用曲线和配合都很重要。", Vector2(93, 226), 20, MUTED)
-		draw_deck_grid(Vector2(90, 280), true)
-		button("返回奖励选择", Rect2(90, 808, 250, 48), "back_reward")
-		button("跳过奖励", Rect2(1110, 808, 240, 48), "skip")
+		var grid_x = maxf(90.0, (size.x - 4 * 321) / 2.0)
+		draw_deck_grid(Vector2(grid_x, 280), true)
+		button("返回奖励选择", Rect2(grid_x, 808, 250, 48), "back_reward")
+		button("跳过奖励", Rect2(size.x - grid_x - 240, 808, 240, 48), "skip")
 
 func draw_deck_grid(origin: Vector2, replacing: bool, cards: Array = []):
 	var deck = game.s.deck if cards.is_empty() else cards
@@ -856,32 +866,35 @@ func draw_deck_grid(origin: Vector2, replacing: bool, cards: Array = []):
 
 func draw_ending():
 	var won = game.s.phase == "complete"
-	portrait("011" if won else "001", Rect2(615, 153, 210, 210))
-	star(Vector2(572, 213), 21, Color("dfaa4d"))
-	star(Vector2(868, 278), 15, Color("dfaa4d"))
-	centered("裂隙已封锁，舰队凯旋。" if won else "返回母港，重新组队。", Rect2(200, 420, 1040, 70), 48, INK, true)
-	centered("来自不同星域的同伴，完成了这次共同的远征。" if won else "本次远征暂告一段落。用新的牌组再次挑战星际战区。", Rect2(190, 525, 1060, 40), 22, MUTED)
-	centered("通过 %d / 3 站    ·    剩余机会 %d" % [3 if won else game.s.stage, game.s.lives], Rect2(200, 590, 1040, 35), 19, GOLD)
-	button("开启新的远征", Rect2(460, 699, 250, 60), "new", null, true)
-	button("查看最终牌组", Rect2(730, 699, 250, 60), "deck")
-	button("回到主菜单", Rect2(600, 796, 240, 44), "menu")
+	var cx = size.x / 2.0
+	portrait("011" if won else "001", Rect2(cx - 105, 153, 210, 210))
+	star(Vector2(cx - 148, 213), 21, Color("dfaa4d"))
+	star(Vector2(cx + 148, 278), 15, Color("dfaa4d"))
+	centered("裂隙已封锁，舰队凯旋。" if won else "返回母港，重新组队。", Rect2(cx - 520, 420, 1040, 70), 48, INK, true)
+	centered("来自不同星域的同伴，完成了这次共同的远征。" if won else "本次远征暂告一段落。用新的牌组再次挑战星际战区。", Rect2(cx - 530, 525, 1060, 40), 22, MUTED)
+	centered("通过 %d / 3 站    ·    剩余机会 %d" % [3 if won else game.s.stage, game.s.lives], Rect2(cx - 520, 590, 1040, 35), 19, GOLD)
+	button("开启新的远征", Rect2(cx - 260, 699, 250, 60), "new", null, true)
+	button("查看最终牌组", Rect2(cx + 10, 699, 250, 60), "deck")
+	button("回到主菜单", Rect2(cx - 120, 796, 240, 44), "menu")
 
 func draw_modal():
 	if modal == "settings": start_ui.settings(self)
 	elif modal == "restart_deck":
-		panel(Rect2(390, 270, 660, 350), PANEL, LINE, 22)
-		text_at("准备开始新远征", Vector2(435, 339), 32, INK, true)
-		paragraph("新牌组已准备完成。出发将替换当前远征进度，已保存的五套卡组会保留。", Vector2(435, 392), 560, 20, MUTED, 31)
-		button("继续编辑", Rect2(435, 521, 250, 55), "close")
-		button("确认出发", Rect2(715, 521, 250, 55), "launch_deck", null, true)
+		var px = (size.x - 660) / 2.0
+		panel(Rect2(px, 270, 660, 350), PANEL, LINE, 22)
+		text_at("准备开始新远征", Vector2(px + 45, 339), 32, INK, true)
+		paragraph("新牌组已准备完成。出发将替换当前远征进度，已保存的五套卡组会保留。", Vector2(px + 45, 392), 560, 20, MUTED, 31)
+		button("继续编辑", Rect2(px + 45, 521, 250, 55), "close")
+		button("确认出发", Rect2(px + 325, 521, 250, 55), "launch_deck", null, true)
 	elif modal == "survey":
 		var choice = game.s.battle.choice
 		var recall = choice.get("kind", "") == "recall"
 		var inherit = choice.get("kind", "") == "inherit"
 		var title = "选择1名友军，改为0费并撤回手牌" if recall else ("选择1名死灵友军，摧毁并继承" if inherit else "深层勘探 · 选择一张加入手牌")
 		var hint = "保留增减益、护盾和技能次数；可以选择自身。" if recall else ("继承增减战力和剩余技能次数，不继承基础数值或护盾；必须成功摧毁。" if inherit else "其余牌放回牌库底部，随后继续本回合揭示。")
-		centered(title, Rect2(180, 112, 1080, 52), 32, INK, true)
-		centered(hint, Rect2(140, 168, 1160, 35), 18, MUTED)
+		var cx = size.x / 2.0
+		centered(title, Rect2(cx - 540, 112, 1080, 52), 32, INK, true)
+		centered(hint, Rect2(cx - 580, 168, 1160, 35), 18, MUTED)
 		var cards = []
 		if recall or inherit:
 			for uid in choice.uids: cards.append(game.locate(uid).card)
@@ -891,7 +904,7 @@ func draw_modal():
 		var height = 350.0 if cards.size() <= 3 else 225.0
 		for i in range(cards.size()):
 			var card = cards[i]
-			var rect = Rect2((1440 - columns * (width + 16)) / 2 + (i % columns) * (width + 16), 236 + (i / columns as int) * (height + 55), width, height)
+			var rect = Rect2((size.x - columns * (width + 16)) / 2 + (i % columns) * (width + 16), 236 + (i / columns as int) * (height + 55), width, height)
 			if cards.size() <= 3: large_card(card.id, rect, card)
 			else:
 				panel(rect, PANEL, LINE, 12)
@@ -907,54 +920,58 @@ func draw_modal():
 		var ids = game.skill_ids(found.card)
 		var pages = ceili(ids.size() / 5.0)
 		skill_page = clampi(skill_page, 0, pages - 1)
-		panel(Rect2(170, 105, 1100, 720), PANEL, LINE, 22)
-		text_at(Rules.CARDS[found.card.id].name + " · 技能", Vector2(205, 150), 30, INK, true)
-		text_at("同名技能不叠加。每种装置独立计次；重启补充剩余次数最少的一种。", Vector2(205, 180), 17, MUTED)
+		var px = (size.x - 1100.0) / 2.0
+		panel(Rect2(px, 105, 1100, 720), PANEL, LINE, 22)
+		text_at(Rules.CARDS[found.card.id].name + " · 技能", Vector2(px + 35, 150), 30, INK, true)
+		text_at("同名技能不叠加。每种装置独立计次；重启补充剩余次数最少的一种。", Vector2(px + 35, 180), 17, MUTED)
 		for i in range(skill_page * 5, mini(ids.size(), (skill_page + 1) * 5)):
 			var id = ids[i]
 			var y = 205 + (i % 5) * 105
-			portrait(id, Rect2(205, y, 70, 70))
+			portrait(id, Rect2(px + 35, y, 70, 70))
 			var label = Rules.CARDS[id].name + (" · 本体" if id == found.card.id else " · 已获得")
 			if id in Rules.Skills.device_ids(found.card): label += " · 装置剩余%d" % game.device_remaining(found.card, id)
-			text_at(label, Vector2(295, y + 20), 17, INK, true)
-			SkillText.draw(self, Rules.Skills.text(found.card, id), Vector2(295, y + 48), 735, 16, INK, 24)
+			text_at(label, Vector2(px + 125, y + 20), 17, INK, true)
+			SkillText.draw(self, Rules.Skills.text(found.card, id), Vector2(px + 125, y + 48), 735, 16, INK, 24)
 			if found.side == 0 and id in game.active_ids(found.card):
 				var move = id in Rules.Balance.SELF_MOVE
-				button("移动" if move else "发动", Rect2(1120, y + 15, 110, 48), "device_move" if move else "use_skill", id, true, not game.can_activate(action_uid, id))
-		button("上一页", Rect2(205, 755, 160, 46), "skill_page", skill_page - 1, false, skill_page == 0)
-		centered("%d / %d" % [skill_page + 1, pages], Rect2(380, 755, 150, 46), 18, MUTED)
-		button("下一页", Rect2(545, 755, 160, 46), "skill_page", skill_page + 1, false, skill_page + 1 == pages)
-		button("返回战场", Rect2(1040, 755, 190, 46), "close")
+				button("移动" if move else "发动", Rect2(px + 950, y + 15, 110, 48), "device_move" if move else "use_skill", id, true, not game.can_activate(action_uid, id))
+		button("上一页", Rect2(px + 35, 755, 160, 46), "skill_page", skill_page - 1, false, skill_page == 0)
+		centered("%d / %d" % [skill_page + 1, pages], Rect2(px + 210, 755, 150, 46), 18, MUTED)
+		button("下一页", Rect2(px + 375, 755, 160, 46), "skill_page", skill_page + 1, false, skill_page + 1 == pages)
+		button("返回战场", Rect2(px + 870, 755, 190, 46), "close")
 	elif modal == "device":
 		var found = game.locate(action_uid)
 		if found.is_empty(): return
-		large_card(found.card.id, Rect2(290, 220, 360, 420), found.card)
-		text_at("技能控制", Vector2(720, 285), 34, INK, true)
-		paragraph(game.state_line(found.card), Vector2(720, 335), 420, 18, MUTED, 28)
-		button("发动主动技能", Rect2(720, 420, 400, 54), "use_skill", null, true, not game.can_activate(action_uid))
-		button("搏命2 · 重启2", Rect2(720, 494, 400, 54), "reboot", null, true, not game.can_reboot(action_uid))
-		button("返回战场", Rect2(720, 581, 400, 48), "close")
+		var px = (size.x - 830.0) / 2.0
+		large_card(found.card.id, Rect2(px, 220, 360, 420), found.card)
+		text_at("技能控制", Vector2(px + 430, 285), 34, INK, true)
+		paragraph(game.state_line(found.card), Vector2(px + 430, 335), 420, 18, MUTED, 28)
+		button("发动主动技能", Rect2(px + 430, 420, 400, 54), "use_skill", null, true, not game.can_activate(action_uid))
+		button("搏命2 · 重启2", Rect2(px + 430, 494, 400, 54), "reboot", null, true, not game.can_reboot(action_uid))
+		button("返回战场", Rect2(px + 430, 581, 400, 48), "close")
 	elif modal == "presets": workshop.draw_presets(self)
 	elif modal == "library": workshop.draw_library(self)
 	elif modal == "random": workshop.draw_random(self)
 	elif modal == "restart":
-		panel(Rect2(405, 290, 630, 320), PANEL, LINE, 20)
-		text_at("重新启程？", Vector2(450, 355), 35, INK, true)
-		paragraph("当前远征进度会被新远征替换。", Vector2(450, 415), 540, 21, MUTED)
-		button("继续当前远征", Rect2(450, 500, 240, 60), "close")
-		panel(Rect2(715, 500, 270, 60), Color("f7bc42"), LINE, 10)
-		centered("开始新的远征", Rect2(715, 500, 270, 60), 18, DARK, true)
-		hit(Rect2(715, 500, 270, 60), "confirm_restart", new_run)
+		var px = (size.x - 630.0) / 2.0
+		panel(Rect2(px, 290, 630, 320), PANEL, LINE, 20)
+		text_at("重新启程？", Vector2(px + 45, 355), 35, INK, true)
+		paragraph("当前远征进度会被新远征替换。", Vector2(px + 45, 415), 540, 21, MUTED)
+		button("继续当前远征", Rect2(px + 45, 500, 240, 60), "close")
+		panel(Rect2(px + 310, 500, 270, 60), Color("f7bc42"), LINE, 10)
+		centered("开始新的远征", Rect2(px + 310, 500, 270, 60), 18, DARK, true)
+		hit(Rect2(px + 310, 500, 270, 60), "confirm_restart", new_run)
 	elif modal == "enemy":
 		var enemy = game.enemy_for_stage(intel_stage)
-		text_at(enemy.name + " · " + enemy.archetype, Vector2(90, 130), 34, INK, true)
-		text_at("敌方初始牌组 · 12张 · 不显示当前手牌与抽牌顺序", Vector2(93, 172), 18, MUTED)
-		paragraph("应对建议：" + enemy.tip, Vector2(93, 212), 1254, 17, MINT, 24)
+		var start_x = maxf(90.0, (size.x - 1254.0) / 2.0)
+		text_at(enemy.name + " · " + enemy.archetype, Vector2(start_x, 130), 34, INK, true)
+		text_at("敌方初始牌组 · 12张 · 不显示当前手牌与抽牌顺序", Vector2(start_x + 3, 172), 18, MUTED)
+		paragraph("应对建议：" + enemy.tip, Vector2(start_x + 3, 212), 1254, 17, MINT, 24)
 		var core_names = []
 		for id in enemy.core: core_names.append(Rules.CARDS[id].name)
-		text_at("核心卡：" + " / ".join(core_names), Vector2(93, 250), 16, GOLD)
-		draw_deck_grid(Vector2(90, 278), false, enemy.deck)
-		button("返回", Rect2(1110, 815, 240, 42), "close", null, true)
+		text_at("核心卡：" + " / ".join(core_names), Vector2(start_x + 3, 250), 16, GOLD)
+		draw_deck_grid(Vector2(start_x, 278), false, enemy.deck)
+		button("返回", Rect2(size.x - 260, 815, 240, 42), "close", null, true)
 	elif modal == "deck":
 		text_at("你的牌组", Vector2(90, 135), 38, INK, true)
 		text_at("12 张队伍卡  ·  人物、异族与舰队可自由混搭", Vector2(93, 183), 20, MUTED)
