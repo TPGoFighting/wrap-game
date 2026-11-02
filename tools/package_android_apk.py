@@ -45,7 +45,7 @@ def package_apk(input_apk, pck_path, unpacked_dir, output_apk):
     if os.path.exists(unpacked_dir):
         for root, dirs, files in os.walk(unpacked_dir):
             for f in files:
-                if f in ["export_presets.cfg", "override.cfg", "project.godot"]:
+                if f in ["export_presets.cfg", "project.godot"]:
                     continue
                 full_p = os.path.join(root, f)
                 rel_p = os.path.relpath(full_p, unpacked_dir).replace("\\", "/")

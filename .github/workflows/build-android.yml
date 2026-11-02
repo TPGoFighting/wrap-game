@@ -135,5 +135,5 @@ jobs:
         run: |
           gh release create v0.9.0-android build/WRAP.apk \
             --title "WRAP · 星际远征 v0.9.0 (Android APK)" \
-            --notes "🚀 《WRAP · 星际远征》v0.9.0 官方原生横屏 Android APK 安装包。基于 Godot 4.7.2 原生 arm64/x86_64 引擎与极速 18MB 优化资产构建。" \
+            --notes "🚀 《WRAP · 星际远征》v0.9.0 移动端深度适配版 Android APK。完美适配移动端横屏与 1440x900 真实比例，彻底解决底部卡牌/结束回合按键截断问题；触控容差扩大，支持点击空白取消选择与点击卡牌即时查看技能说明。" \
             || gh release upload v0.9.0-android build/WRAP.apk --clobber
