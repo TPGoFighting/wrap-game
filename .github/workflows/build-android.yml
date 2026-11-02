@@ -55,12 +55,17 @@ jobs:
             -startdate "2020/01/01 00:00:00" \
             -dname "CN=Android Debug,O=Android,C=US"
 
-          # Release Keystore (backdated startdate to 2020 to prevent future certificate errors)
-          keytool -genkey -v -keystore /home/runner/.android/release.keystore \
-            -storepass wrap_password_123 -alias wrapkey -keypass wrap_password_123 \
-            -keyalg RSA -keysize 2048 -validity 20000 \
-            -startdate "2020/01/01 00:00:00" \
-            -dname "CN=WRAP Game,O=TPGoFighting,C=CN"
+          # Release Keystore (use tracked permanent keystore if available, otherwise generate)
+          if [ -f "keystore/release.keystore" ]; then
+            echo "Using tracked permanent release.keystore"
+            cp keystore/release.keystore /home/runner/.android/release.keystore
+          else
+            keytool -genkey -v -keystore /home/runner/.android/release.keystore \
+              -storepass wrap_password_123 -alias wrapkey -keypass wrap_password_123 \
+              -keyalg RSA -keysize 2048 -validity 20000 \
+              -startdate "2020/01/01 00:00:00" \
+              -dname "CN=WRAP Game,O=TPGoFighting,C=CN"
+          fi
 
           mkdir -p ~/.config/godot
           cat << EOF > ~/.config/godot/editor_settings-4.7.tres
