@@ -92,8 +92,8 @@ jobs:
           echo "Using apksigner: $APKSIGNER"
           echo "Using aapt: $AAPT"
 
-          # 2. Inject complete 18MB WRAP.pck and Android boot settings
-          python3 tools/package_android_apk.py build/WRAP_base.apk web_build/WRAP.pck build/WRAP_unaligned.apk
+          # 2. Inject complete 18MB WRAP.pck, loose assets, and clean Android boot settings
+          python3 tools/package_android_apk.py build/WRAP_base.apk web_build/WRAP.pck unpacked_pck_opt build/WRAP_unaligned.apk
 
           # 3. Zipalign APK (4-byte alignment for uncompressed assets)
           "$ZIPALIGN" -p -f 4 build/WRAP_unaligned.apk build/WRAP_aligned.apk
